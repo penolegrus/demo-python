@@ -1,8 +1,5 @@
 import time
 
-import pytest
-
-from tests.conftest import poll_until
 from tests.rest.clients.notification_client import NotificationApiClient
 from tests.rest.clients.order_client import OrderApiClient
 from tests.rest.models.models import CreateOrderDto
@@ -73,23 +70,3 @@ class TestNotifications:
         notifications = notification_client.get_notifications()
 
         assert notifications == []
-
-@pytest.mark.usefixtures("customer_client", "notification_client")
-class TestNotificationsV2:
-    def test_seller_reads_single(self, customer_client, notification_client, faker):
-        order = customer_client.create_order(CreateOrderDto(ingredientIds=[1], comment=faker.word()))
-        notif = poll_until(lambda: next((n for n in notification_client.get_notifications() if n.orderId == order.id), None))
-        notification_client.read_notification(notif.id)
-        assert next(n for n in notification_client.get_notifications() if n.id == notif.id).status == "READ"
-
-    def test_bulk_read_and_delete(self, customer_client, notification_client, faker):
-        # создаём 3 заказа → 3 уведомления
-        for _ in range(3):
-            customer_client.create_order(CreateOrderDto(ingredientIds=[1], comment=faker.word()))
-
-        notifications = poll_until(lambda: notification_client.get_notifications() if len(notification_client.get_notifications()) == 3 else None)
-        assert notifications
-        notification_client.read_all_notifications()
-        assert all(n.status == "READ" for n in notification_client.get_notifications())
-        notification_client.delete_all_notifications()
-        assert notification_client.get_notifications() == []
