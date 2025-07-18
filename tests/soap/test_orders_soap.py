@@ -12,8 +12,7 @@ def soap_client():
 class TestSoapOrders:
 
     def test_create_order(self, soap_client, random_user, random_ingredient):
-        user = random_user(user_type="customer")
-        order = soap_client.service.CreateOrder(userId=user.user.id, ingredientIds=random_ingredient)
+        order = soap_client.service.CreateOrder(userId=random_user().user.id, ingredientIds=random_ingredient)
         assert order.id
         assert order.status == "CREATED"
 
