@@ -1,4 +1,5 @@
 import pytest
+from typing import List
 
 from tests.grpc.grpc_client import CoffeeOrderGrpcClient
 from tests.rest.clients.ingredient_client import IngredientApiClient
@@ -6,66 +7,76 @@ from tests.rest.clients.order_client import OrderApiClient
 from tests.rest.models.models import CreateOrderDto, IngredientRequestDto
 
 
+@pytest.fixture(scope="class")
+def grpc_client() -> CoffeeOrderGrpcClient:
+    return CoffeeOrderGrpcClient()
+
+
+@pytest.fixture(scope="class")
+def seller_token(random_user):
+    return random_user(user_type="seller", create_new=True).token
+
+
+@pytest.fixture(scope="class")
+def ingredient_client(seller_token) -> IngredientApiClient:
+    return IngredientApiClient(token=seller_token)
+
+
+@pytest.fixture
+def make_ingredients(ingredient_client, faker_instance):
+    """Быстро создаёт N ингредиентов и возвращает их id."""
+    def _create(count: int = 1) -> List[int]:
+        ids = []
+        for _ in range(count):
+            body = IngredientRequestDto(
+                name=faker_instance.unique.email(),
+                quantity=faker_instance.random_int(10, 100)
+            )
+            ids.append(ingredient_client.create_ingredient(body).id)
+        return ids
+    return _create
+
+
 class TestCoffeeOrderGrpc:
-    @pytest.fixture(scope="module")
-    def grpc_client(self):
-        return CoffeeOrderGrpcClient()
-
-    def test_create_and_get_order(self, grpc_client, random_user, faker_instance):
+    def test_create_and_get_order(self, grpc_client, random_user, make_ingredients):
         customer = random_user()
+        ingredient_ids = make_ingredients(2)
 
-        ingredient_client = IngredientApiClient(token=random_user(user_type="seller").token)
-        body1 = IngredientRequestDto(name=faker_instance.unique.email(), quantity=faker_instance.random_int(10, 100))
-        body2 = IngredientRequestDto(name=faker_instance.unique.email(), quantity=faker_instance.random_int(10, 100))
-        ingredient1 = ingredient_client.create_ingredient(body1)
-        ingredient2 = ingredient_client.create_ingredient(body2)
-
-        # Создать заказ
-        create_resp = grpc_client.create_order(user_id=customer.user.id, ingredient_ids=[ingredient1.id, ingredient2.id])
+        create_resp = grpc_client.create_order(
+            user_id=customer.user.id,
+            ingredient_ids=ingredient_ids
+        )
         assert create_resp.order.id
-        order_id = create_resp.order.id
 
-        # Получить заказ по id
-        get_resp = grpc_client.get_order_by_id(order_id)
-        assert get_resp.id == order_id
+        fetched = grpc_client.get_order_by_id(create_resp.order.id)
+        assert fetched.id == create_resp.order.id
 
-    def test_get_orders_by_user(self, grpc_client, random_user, faker_instance):
+    def test_get_orders_by_user(self, grpc_client, random_user, make_ingredients, faker_instance):
         customer = random_user()
+        ingredient_ids = make_ingredients(2)
 
         order_client = OrderApiClient(token=customer.token)
-        ingredient_client = IngredientApiClient(token=random_user(user_type="seller").token)
+        for subset in ([ingredient_ids[0]], ingredient_ids):
+            order_client.create_order(
+                CreateOrderDto(
+                    ingredientIds=subset,
+                    comment=faker_instance.name_male()
+                )
+            )
 
-        body1 = IngredientRequestDto(name=faker_instance.unique.email(), quantity=faker_instance.random_int(10, 100))
-        body2 = IngredientRequestDto(name=faker_instance.unique.email(), quantity=faker_instance.random_int(10, 100))
-        ingredient1 = ingredient_client.create_ingredient(body1)
-        ingredient2 = ingredient_client.create_ingredient(body2)
-
-        order1 = CreateOrderDto(ingredientIds=[ingredient1.id], comment=faker_instance.name_male())
-        order2 = CreateOrderDto(ingredientIds=[ingredient1.id, ingredient2.id], comment=faker_instance.name_male())
-
-        order_client.create_order(order1)
-        order_client.create_order(order2)
-
-        resp = grpc_client.get_orders_by_user(user_id=customer.user.id)
-        print(resp)
-
-        orders = resp.orders
+        orders = grpc_client.get_orders_by_user(user_id=customer.user.id).orders
         assert len(orders) == 2
 
-        assert hasattr(orders[0], "id")
-        assert orders[0].userId == customer.user.id
-        assert orders[0].status == "CREATED"
-        assert hasattr(orders[0], "createdAt")
-        assert ingredient1.id in orders[0].ingredientIds
+        # общие проверки для всех заказов
+        for order in orders:
+            assert order.userId == customer.user.id
+            assert order.status == "CREATED"
+            assert hasattr(order, "id")
+            assert hasattr(order, "createdAt")
 
-        assert hasattr(orders[1], "id")
-        assert orders[1].userId == customer.user.id
-        assert orders[1].status == "CREATED"
-        assert hasattr(orders[1], "createdAt")
-        assert ingredient1.id, ingredient2.id in orders[1].ingredientIds
+        # конкретные проверки
+        assert ingredient_ids[0] in orders[0].ingredientIds
+        assert all(i in orders[1].ingredientIds for i in ingredient_ids)
 
-        order_ids = [order.id for order in orders]
-        assert len(set(order_ids)) == len(order_ids)
-
-#.\.venv\Scripts\activate
-#python -m grpc_tools.protoc -I proto --python_out=grpc_gen --grpc_python_out=grpc_gen proto/coffee_order.proto
+        ids = [o.id for o in orders]
+        assert len(set(ids)) == len(ids)  # уникальны

@@ -26,11 +26,11 @@ def base_ui_url():
     return os.getenv("BASE_URL", "http://localhost:5173")
 
 
-@pytest.fixture
+@pytest.fixture(scope="class")
 def faker_instance():
     return Faker()
 
-@pytest.fixture
+@pytest.fixture(scope="class")
 def random_user(auth_client, faker_instance, user_repository):
     def _get_token(user_type: str = "customer", create_new: bool = True) -> AuthFullResponse:
         if create_new:
@@ -49,28 +49,28 @@ def random_user(auth_client, faker_instance, user_repository):
         return auth_client.login(login_request)
     return _get_token
 
-@pytest.fixture
+@pytest.fixture(scope="class")
 def random_ingredient(ingredient_repository):
     return ingredient_repository.find_random_ids_with_positive_quantity(1)
 
-@pytest.fixture
+@pytest.fixture(scope="class")
 def auth_client() -> AuthApiClient:
     return AuthApiClient()
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def db_executor():
     return DbExecutor()
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def ingredient_repository(db_executor):
     return IngredientRepository(db_executor)
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def order_repository(db_executor):
     from tests.db.order_repository import OrderRepository
     return OrderRepository(db_executor)
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def user_repository(db_executor):
     from tests.db.user_repository import UserRepository
     return UserRepository(db_executor)
