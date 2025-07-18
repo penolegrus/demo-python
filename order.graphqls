@@ -1,0 +1,58 @@
+type User {
+    id: ID!
+    username: String!
+    email: String!
+    role: String!
+}
+
+type Ingredient {
+    id: ID!
+    name: String!
+    quantity: Int!
+}
+
+type CoffeeOrder {
+    id: ID!
+    user: User!
+    ingredients: [Ingredient!]!
+    createdAt: String!
+    status: String!
+}
+
+type Message {
+    id: ID!
+    sender: User!
+    receiver: User!
+    content: String!
+    sentAt: String!
+}
+
+enum Role {
+    CUSTOMER
+    SELLER
+    ADMIN
+}
+
+enum CoffeeOrderStatus {
+    CREATED
+    INPROGRESS
+    DONE
+}
+
+type Query {
+    users(role: Role): [User!]!
+    user(id: ID!): User
+    ingredients: [Ingredient!]!
+    ingredient(id: ID!): Ingredient
+    orders(status: CoffeeOrderStatus): [CoffeeOrder!]!
+    order(id: ID!): CoffeeOrder
+    ordersByUser(userId: ID!): [CoffeeOrder!]!
+    messages(senderId: ID, receiverId: ID): [Message!]!
+}
+
+type Mutation {
+    createUser(username: String!, email: String!, password: String!, role: String!): User!
+    createIngredient(name: String!, quantity: Int!): Ingredient!
+    createOrder(userId: ID!, ingredientIds: [ID!]!): CoffeeOrder!
+    createMessage(senderId: ID!, receiverId: ID!, content: String!): Message!
+}

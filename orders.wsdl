@@ -1,0 +1,88 @@
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:sch="http://example.com/coffeehouse/order" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://example.com/coffeehouse/order" targetNamespace="http://example.com/coffeehouse/order">
+    <wsdl:types>
+        <xs:schema xmlns="http://example.com/coffeehouse/order" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" targetNamespace="http://example.com/coffeehouse/order">
+            <xs:element name="OrderRequest" type="OrderRequestType"/>
+            <xs:element name="OrderResponse" type="OrderResponseType"/>
+            <xs:element name="CreateOrderRequest" type="CreateOrderRequestType"/>
+            <xs:element name="CreateOrderResponse" type="CreateOrderResponseType"/>
+            <xs:complexType name="OrderRequestType">
+                <xs:sequence>
+                    <xs:element name="orderId" type="xs:long"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="OrderResponseType">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="order" type="OrderType"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="CreateOrderRequestType">
+                <xs:sequence>
+                    <xs:element name="userId" type="xs:long"/>
+                    <xs:element maxOccurs="unbounded" minOccurs="1" name="ingredientIds" type="xs:long"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="CreateOrderResponseType">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="order" type="OrderType"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="OrderType">
+                <xs:sequence>
+                    <xs:element name="id" type="xs:long"/>
+                    <xs:element name="userId" type="xs:long"/>
+                    <xs:element maxOccurs="unbounded" minOccurs="1" name="ingredientIds" type="xs:long"/>
+                    <xs:element name="createdAt" type="xs:string"/>
+                    <xs:element name="status" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+        </xs:schema>
+    </wsdl:types>
+    <wsdl:message name="OrderResponse">
+        <wsdl:part element="tns:OrderResponse" name="OrderResponse"> </wsdl:part>
+    </wsdl:message>
+    <wsdl:message name="CreateOrderResponse">
+        <wsdl:part element="tns:CreateOrderResponse" name="CreateOrderResponse"> </wsdl:part>
+    </wsdl:message>
+    <wsdl:message name="OrderRequest">
+        <wsdl:part element="tns:OrderRequest" name="OrderRequest"> </wsdl:part>
+    </wsdl:message>
+    <wsdl:message name="CreateOrderRequest">
+        <wsdl:part element="tns:CreateOrderRequest" name="CreateOrderRequest"> </wsdl:part>
+    </wsdl:message>
+    <wsdl:portType name="OrderPort">
+        <wsdl:operation name="Order">
+            <wsdl:input message="tns:OrderRequest" name="OrderRequest"> </wsdl:input>
+            <wsdl:output message="tns:OrderResponse" name="OrderResponse"> </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="CreateOrder">
+            <wsdl:input message="tns:CreateOrderRequest" name="CreateOrderRequest"> </wsdl:input>
+            <wsdl:output message="tns:CreateOrderResponse" name="CreateOrderResponse"> </wsdl:output>
+        </wsdl:operation>
+    </wsdl:portType>
+    <wsdl:binding name="OrderPortSoap11" type="tns:OrderPort">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <wsdl:operation name="Order">
+            <soap:operation soapAction=""/>
+            <wsdl:input name="OrderRequest">
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output name="OrderResponse">
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="CreateOrder">
+            <soap:operation soapAction=""/>
+            <wsdl:input name="CreateOrderRequest">
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output name="CreateOrderResponse">
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:service name="OrderPortService">
+        <wsdl:port binding="tns:OrderPortSoap11" name="OrderPortSoap11">
+            <soap:address location="http://localhost:8080/ws"/>
+        </wsdl:port>
+    </wsdl:service>
+</wsdl:definitions>

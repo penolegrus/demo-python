@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.example.coffeehouse.grpc";
+option java_outer_classname = "CoffeeOrderProto";
+
+message CoffeeOrderRequest {
+  int64 id = 1;
+}
+
+message UserOrdersRequest {
+  int64 userId = 1;
+}
+
+message CoffeeOrderResponse {
+  int64 id = 1;
+  int64 userId = 2;
+  repeated int64 ingredientIds = 3;
+  string createdAt = 4;
+  string status = 5;
+}
+
+message CreateCoffeeOrderRequest {
+  int64 userId = 1;
+  repeated int64 ingredientIds = 2;
+}
+
+message CreateCoffeeOrderResponse {
+  CoffeeOrderResponse order = 1;
+}
+
+message CoffeeOrderListResponse {
+  repeated CoffeeOrderResponse orders = 1;
+}
+
+service CoffeeOrderService {
+  rpc GetOrderById (CoffeeOrderRequest) returns (CoffeeOrderResponse);
+  rpc GetOrdersByUser (UserOrdersRequest) returns (CoffeeOrderListResponse);
+  rpc CreateOrder (CreateCoffeeOrderRequest) returns (CreateCoffeeOrderResponse);
+}
+
+
