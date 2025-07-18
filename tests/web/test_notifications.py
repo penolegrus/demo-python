@@ -43,7 +43,7 @@ class TestUINotifications:
         login_page.login_as("seller", "seller")
 
         sidebar = SideBarComponent(driver)
-        pending_orders_page = sidebar.go_to_pending_orders_page()
+        pending_orders_page = sidebar.go_to_pending_orders_page().wait_loaded()
 
         component = pending_orders_page.order_by_id(str(order_id))
         component.set_status("DONE")
