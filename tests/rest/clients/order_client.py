@@ -1,26 +1,24 @@
-from .rest_client import RestClient
-from tests.rest.models.models import OrderResponse, CreateOrderDto, UpdateOrderStatusRequest
-from typing import List, Optional
+from __future__ import annotations
 
-class OrderApiClient:
-    def __init__(self, base_url: str = "http://localhost:8080", token: Optional[str] = None):
-        self.rest = RestClient(base_url, token)
+from tests.rest.clients.base_client import HttpClient
+from tests.rest.models.models import CreateOrderDto, OrderResponse, UpdateOrderStatusRequest
 
+
+class OrderApiClient(HttpClient):
     def get_order_by_id(self, order_id: int) -> OrderResponse:
-        return self.rest.get(f"/api/orders/{order_id}", OrderResponse)
+        return self.get_(f"/api/orders/{order_id}", model=OrderResponse)
 
-    def delete_order_by_id(self, order_id: int):
-        return self.rest.delete(f"/api/orders/{order_id}")
+    def get_all_orders(self) -> list[OrderResponse]:
+        return self.get_list_("/api/orders", model=OrderResponse)
 
-    def get_all_orders(self) -> List[OrderResponse]:
-        return self.rest.get_list("/api/orders", OrderResponse, paginated=True)
-
-    def get_pending_orders(self) -> List[OrderResponse]:
-        return self.rest.get_list("/api/orders/pending", OrderResponse, paginated=True)
+    def get_pending_orders(self) -> list[OrderResponse]:
+        return self.get_list_("/api/orders/pending", model=OrderResponse)
 
     def create_order(self, dto: CreateOrderDto) -> OrderResponse:
-        return self.rest.post("/api/orders", dto.dict(), OrderResponse)
+        return self.post_("/api/orders", body=dto, model=OrderResponse)
 
     def update_order_status(self, order_id: int, status: str) -> OrderResponse:
-        req = UpdateOrderStatusRequest(status=status)
-        return self.rest.put(f"/api/orders/{order_id}/status", req.dict(), OrderResponse) 
+        return self.put_(f"/api/orders/{order_id}/status", body=UpdateOrderStatusRequest(status=status), model=OrderResponse)
+
+    def delete_order_by_id(self, order_id: int) -> None:
+        self.delete_(f"/api/orders/{order_id}")

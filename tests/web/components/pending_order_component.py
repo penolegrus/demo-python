@@ -1,27 +1,25 @@
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
 
 class PendingOrderComponent:
-    def __init__(self, root):
+    def __init__(self, root: WebElement):
         self.root = root
 
-    def get_id(self) -> str:
-        text = self.root.find_element(By.CSS_SELECTOR, "[data-testid^='pending-order-id-']").text
-        return text.replace("Заказ №", "").strip()
+    @property
+    def id(self) -> str:
+        return self.root.find_element(By.CSS_SELECTOR, "[data-testid^='pending-order-id-']").text.replace("Заказ №", "").strip()
 
-    def get_comment(self) -> str:
-        elems = self.root.find_elements(By.CSS_SELECTOR, "[data-testid^='pending-order-comment-']")
-        if elems:
-            return elems[0].text.replace("Комментарий: ", "").strip()
-        return ""
+    @property
+    def comment(self) -> str:
+        return self.root.find_element(By.CSS_SELECTOR, "[data-testid^='pending-order-comment-']").text.replace("Комментарий: ", "").strip()
 
-    def change_status(self, new_status: str):
+    def set_status(self, new_status: str):
         self.root.find_element(By.CSS_SELECTOR, "[data-testid^='pending-order-status-select-']").click()
-        xpath = f"//li[@data-value='{new_status}']"
-        self.root.find_element(By.XPATH, xpath).click()
+        self.root.find_element(By.XPATH, f"//li[@data-value='{new_status}']").click()
         return self
 
-    def update(self):
+    def update(self) -> None:
         self.root.find_element(By.CSS_SELECTOR, "[data-testid^='pending-order-update-btn-']").click()
 
-    def delete(self):
-        self.root.find_element(By.CSS_SELECTOR, "[data-testid^='pending-order-delete-btn-']").click() 
+    def delete(self) -> None:
+        self.root.find_element(By.CSS_SELECTOR, "[data-testid^='pending-order-delete-btn-']").click()

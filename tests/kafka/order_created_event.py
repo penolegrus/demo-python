@@ -1,6 +1,7 @@
 # tests/kafka/order_created_event.py
 from dataclasses import dataclass
-from typing import List
+from typing import List, Dict, Any
+
 
 @dataclass
 class OrderCreatedEvent:
@@ -14,3 +15,7 @@ class OrderCreatedEvent:
         self.userId = userId
         self.ingredientIds = ingredientIds
         self.status = status
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OrderCreatedEvent":
+        return cls(**{k: v for k, v in data.items() if k in cls.__annotations__})

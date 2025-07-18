@@ -1,6 +1,6 @@
-# tests/kafka/test_create_order_kafka.py
+from typing import Any, Generator, List
+
 import pytest
-import time
 from tests.kafka.kafka_consumer import OrderKafkaConsumer
 from tests.kafka.order_created_event import OrderCreatedEvent
 from tests.rest.clients.order_client import OrderApiClient
@@ -8,26 +8,33 @@ from tests.rest.models.models import CreateOrderDto
 
 
 @pytest.fixture(scope="module")
-def kafka_consumer():
-    return OrderKafkaConsumer(topic="order-events")
+def kafka_consumer() -> Generator[OrderKafkaConsumer, Any, None]:
+    consumer = OrderKafkaConsumer(topic="order-events")
+    yield consumer
+    consumer.close()
 
-def test_message_should_be_produced_to_kafka_after_successful_created_order(
-    kafka_consumer, random_user, random_ingredient, faker_instance
-):
-    token = random_user.token
-    order_client = OrderApiClient(token=token)
-    body = CreateOrderDto(ingredientIds=random_ingredient, comment=faker_instance.name_male())
 
-    response = order_client.create_order(body)
+def test_kafka_message_after_successful_order(
+    kafka_consumer: OrderKafkaConsumer,
+    random_user,
+    random_ingredient: List[int],
+    faker_instance,
+) -> None:
+    token = random_user().token
+    response = OrderApiClient(token=token).create_order(
+        CreateOrderDto(
+            ingredientIds=random_ingredient,
+            comment=faker_instance.name_male(),
+        )
+    )
 
-    # Получаем сообщение из Kafka
-    message = kafka_consumer.get_message(response.user.id, timeout_sec=10)
-    print(message)
-    assert message is not None, "Kafka message not found"
+    raw_event = kafka_consumer.get_message(user_id=response.user.id, timeout=10)
+    print(raw_event)
+    assert raw_event, "Kafka message not found"
 
-    event = OrderCreatedEvent(**message)
+    event = OrderCreatedEvent.from_dict(raw_event)
 
-    assert response.id == event.orderId
-    assert response.status == event.status
-    assert [i.id for i in response.ingredients] == event.ingredientIds
-    assert response.user.id == event.userId
+    assert event.orderId == response.id
+    assert event.userId == response.user.id
+    assert event.status == response.status
+    assert event.ingredientIds == [i.id for i in response.ingredients]

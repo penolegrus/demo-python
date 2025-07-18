@@ -1,19 +1,17 @@
-from .rest_client import RestClient
+from .base_client import HttpClient
+
 from tests.rest.models.models import NotificationDto
-from typing import List, Optional
 
-class NotificationApiClient:
-    def __init__(self, base_url: str = "http://localhost:8080", token: Optional[str] = None):
-        self.rest = RestClient(base_url, token)
 
-    def get_notifications(self) -> List[NotificationDto]:
-        return self.rest.get_list("/api/notifications", NotificationDto, paginated=True)
+class NotificationApiClient(HttpClient):
+    def get_notifications(self) -> list[NotificationDto]:
+        return self.get_list_("/api/notifications", model=NotificationDto)
 
-    def delete_all_notifications(self):
-        return self.rest.delete("/api/notifications")
+    def read_notification(self, notification_id: int) -> None:
+        self.patch_(f"/api/notifications/{notification_id}/read")
 
-    def read_notification(self, notification_id: int):
-        return self.rest.patch(f"/api/notifications/{notification_id}/read")
+    def read_all_notifications(self) -> None:
+        self.patch_("/api/notifications/read-all")
 
-    def read_all_notifications(self):
-        return self.rest.patch("/api/notifications/read-all") 
+    def delete_all_notifications(self) -> None:
+        self.delete_("/api/notifications")

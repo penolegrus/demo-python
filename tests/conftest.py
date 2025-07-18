@@ -1,30 +1,38 @@
 import os
+import time
 
 import pytest
 from faker import Faker
-from selenium.webdriver.chrome import webdriver
+from selenium import webdriver
 
 from tests.db.db_executor import DbExecutor
 from tests.db.ingredient_repository import IngredientRepository
 from tests.rest.clients.auth_client import AuthApiClient
+from tests.rest.clients.ingredient_client import IngredientApiClient
+from tests.rest.clients.notification_client import NotificationApiClient
+from tests.rest.clients.order_client import OrderApiClient
 from tests.rest.models.models import AuthRequest, RegisterRequest, AuthFullResponse, CreateOrderDto
 
-@pytest.fixture(scope="class")
+@pytest.fixture(scope="function")
 def driver(request):
-    """
-    Создаём и передаём драйвер в каждый тест-класс.
-    По умолчанию Chrome, но можно переопределить переменной окружения BROWSER.
-    """
-    drv = webdriver.Chrome()
-    drv.implicitly_wait(10)
-    request.cls.driver = drv  # доступен как self.driver внутри класса
-    yield drv
-    drv.quit()
+    options = webdriver.ChromeOptions()
+    # Отключить менеджер паролей и проверку паролей
+    prefs = {
+        "credentials_enable_service": False,
+        "profile.password_manager_enabled": False,
+        "profile.password_manager_leak_detection": False
+    }
+    options.add_experimental_option("prefs", prefs)
+    options.add_argument("--disable-blink-features=PasswordManagerIntegration")
+
+    driver = webdriver.Chrome(options=options)
+    driver.implicitly_wait(10)
+    yield driver
+    driver.quit()
 
 @pytest.fixture(scope="class")
 def base_ui_url():
     return os.getenv("BASE_URL", "http://localhost:5173")
-
 
 @pytest.fixture(scope="class")
 def faker_instance():
@@ -74,3 +82,32 @@ def order_repository(db_executor):
 def user_repository(db_executor):
     from tests.db.user_repository import UserRepository
     return UserRepository(db_executor)
+
+
+
+
+@pytest.fixture(scope="class")
+def seller_client(random_user) -> OrderApiClient:
+    return OrderApiClient(token=random_user(user_type="seller").token)
+
+@pytest.fixture(scope="class")
+def customer_client(random_user) -> OrderApiClient:
+    return OrderApiClient(token=random_user(user_type="customer").token)
+
+@pytest.fixture(scope="class")
+def ingredient_client(random_user) -> IngredientApiClient:
+    return IngredientApiClient(token=random_user(user_type="seller").token)
+
+@pytest.fixture(scope="class")
+def notification_client(random_user) -> NotificationApiClient:
+    return NotificationApiClient(token=random_user(user_type="seller").token)
+
+
+def poll_until(predicate, *, timeout=5, step=0.5):
+    end = time.time() + timeout
+    while time.time() < end:
+        result = predicate()
+        if result:
+            return result
+        time.sleep(step)
+    return None

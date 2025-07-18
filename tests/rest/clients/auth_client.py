@@ -1,13 +1,10 @@
-from .rest_client import RestClient
+from tests.rest.clients.base_client import HttpClient
 from tests.rest.models.models import AuthRequest, RegisterRequest, AuthFullResponse, UserResponseDto
 
 
-class AuthApiClient:
-    def __init__(self, base_url: str = "http://localhost:8080"):
-        self.rest = RestClient(base_url)
-
+class AuthApiClient(HttpClient):
     def login(self, req: AuthRequest) -> AuthFullResponse:
-        return self.rest.post("/api/auth/login", req.dict(), AuthFullResponse)
+        return self.post_("/api/auth/login", body=req, model=AuthFullResponse)
 
     def register(self, req: RegisterRequest) -> UserResponseDto:
-        return self.rest.post("/api/auth/register", req.dict(), UserResponseDto) 
+        return self.post_("/api/auth/register", body=req, model=UserResponseDto)

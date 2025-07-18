@@ -1,3 +1,6 @@
+import pytest
+
+from tests.conftest import poll_until
 from tests.rest.clients.order_client import OrderApiClient
 from tests.rest.clients.notification_client import NotificationApiClient
 from tests.rest.models.models import CreateOrderDto
@@ -84,4 +87,44 @@ class TestOrder:
         body = CreateOrderDto(ingredientIds=random_ingredient, comment=faker_instance.name_female())
         order = order_client.create_order(body)
         pending = seller_order_client.get_pending_orders()
-        assert any(o.id == order.id for o in pending) 
+        assert any(o.id == order.id for o in pending)
+
+@pytest.mark.usefixtures("customer_client", "seller_client")
+class TestOrderV2:
+    def test_get_all_orders_returns_only_own(self, customer_client, random_ingredient, faker):
+        body = CreateOrderDto(ingredientIds=random_ingredient, comment=faker.bs())
+        order = customer_client.create_order(body)
+        orders = customer_client.get_all_orders()
+        assert any(o.id == order.id and o.comment == body.comment for o in orders)
+
+    def test_customer_creates_seller_notified(self, customer_client, notification_client, faker):
+        order = customer_client.create_order(
+            CreateOrderDto(ingredientIds=[1, 2], comment=faker.email())
+        )
+        assert poll_until(lambda: next((n for n in notification_client.get_notifications() if n.orderId == order.id), None))
+
+    def test_status_change_notifies_customer(self, customer_client, seller_client, faker):
+        order = customer_client.create_order(
+            CreateOrderDto(ingredientIds=[1], comment=faker.name())
+        )
+        seller_client.update_order_status(order.id, "INPROGRESS")
+        notif = poll_until(
+            lambda: next((n for n in customer_client.notifications.get_notifications() if n.orderId == order.id), None)
+        )
+        assert notif and "INPROGRESS" in notif.message and notif.status == "UNREAD"
+
+    @pytest.mark.parametrize("status", ["DONE", "INPROGRESS"])
+    def test_final_status_removes_from_pending(self, customer_client, seller_client, status, random_ingredient, faker):
+        order = customer_client.create_order(
+            CreateOrderDto(ingredientIds=random_ingredient, comment=faker.name())
+        )
+        seller_client.update_order_status(order.id, status)
+        pending = seller_client.get_pending_orders()
+        assert not any(o.id == order.id for o in pending)
+
+    def test_crud_order(self, customer_client, random_ingredient, faker):
+        body = CreateOrderDto(ingredientIds=random_ingredient, comment=faker.catch_phrase())
+        created = customer_client.create_order(body)
+        fetched = customer_client.get_order_by_id(created.id)
+        assert fetched.id == created.id
+        assert customer_client.delete_order_by_id(created.id).status_code == 204

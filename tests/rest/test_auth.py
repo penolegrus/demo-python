@@ -1,16 +1,18 @@
+import pytest
+
 from tests.rest.models.models import AuthRequest, RegisterRequest
 
-class TestAuth:
+@pytest.mark.usefixtures("auth_client", "faker_instance")
+class TestAuthV2:
 
-    def test_login_success(self, auth_client):
-        req = AuthRequest(username="admin", password="admin")
-        resp = auth_client.login(req)
-        assert resp.token
+    def test_login(self, auth_client):
+        assert auth_client.login(AuthRequest(username="admin", password="admin")).token
 
-    def test_register_success(self, auth_client, faker_instance):
-        username = f"newuser_{faker_instance.unique.user_name()}"
-        password = "123456"
-        email = faker_instance.unique.email()
-        req = RegisterRequest(username=username, email=email, password=password)
-        resp = auth_client.register(req)
-        assert resp.username == username 
+    def test_register(self, auth_client, faker_instance):
+        req = RegisterRequest(
+            username=faker_instance.unique.user_name(),
+            email=faker_instance.unique.email(),
+            password="123456"
+        )
+        created = auth_client.register(req)
+        assert created.username == req.username

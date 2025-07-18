@@ -1,34 +1,33 @@
 from selenium.webdriver.common.by import By
-from .base_page import BasePage
-from ..components.pending_order_component import PendingOrderComponent
+from tests.web.pages.base_page import BasePage
+from tests.web.components.pending_order_component import PendingOrderComponent
+from typing import List, Optional
 
 
 class PendingOrdersPage(BasePage):
-    TITLE = (By.XPATH, "//*[text()='Текущие заказы']")
-    CARDS = (By.CSS_SELECTOR, "[data-testid^='pending-order-card-']")
-    NO_ELEMENTS = (By.CSS_SELECTOR, "[data-testid='pending-orders-empty']")
+    TITLE       = (By.XPATH, "//*[text()='Текущие заказы']")
+    CARD        = (By.CSS_SELECTOR, "[data-testid^='pending-order-card-']")
+    EMPTY_BLOCK = (By.CSS_SELECTOR, "[data-testid='pending-orders-empty']")
 
-    def get_orders(self):
-        cards = self.driver.find_elements(*self.CARDS)
-        return [PendingOrderComponent(card) for card in cards]
+    def open(self, base_url: str) -> "PendingOrdersPage":
+        super().open(base_url)
+        return self.wait_loaded()
 
-    def find_by_id(self, id_: str):
+    def wait_loaded(self) -> "PendingOrdersPage":
+        self.is_visible(*self.TITLE)
+        # карточки или пустой блок — одно из двух
+        if not (self.driver.find_elements(*self.CARD) or self.driver.find_elements(*self.EMPTY_BLOCK)):
+            raise AssertionError("Нет ни карточек, ни пустого блока")
+        return self
+
+    @property
+    def orders(self) -> List[PendingOrderComponent]:
+        return [PendingOrderComponent(el) for el in self.driver.find_elements(*self.CARD)]
+
+    def order_by_id(self, id_: str) -> Optional[PendingOrderComponent]:
         selector = (By.CSS_SELECTOR, f"[data-testid='pending-order-card-{id_}']")
-        cards = self.driver.find_elements(*selector)
-        return PendingOrderComponent(cards[0]) if cards else None
+        els = self.driver.find_elements(*selector)
+        return PendingOrderComponent(els[0]) if els else None
 
-    def find_by_comment(self, comment: str):
-        for order in self.get_orders():
-            if order.get_comment() == comment:
-                return order
-        return None
-
-    def wait_for_page_loaded(self) -> 'PendingOrdersPage':
-        self.driver.find_element(*self.TITLE)
-        # Ждем, пока либо появится пустой блок, либо хотя бы одна карточка
-        try:
-            self.driver.find_element(*self.NO_ELEMENTS)
-        except Exception:
-            if not self.driver.find_elements(*self.CARDS):
-                raise AssertionError('Нет ни одной карточки и нет пустого блока!')
-        return self 
+    def order_by_comment(self, comment: str) -> Optional[PendingOrderComponent]:
+        return next((o for o in self.orders if o.comment == comment), None)

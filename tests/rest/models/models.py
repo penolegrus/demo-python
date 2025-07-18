@@ -82,6 +82,6 @@ class MessageResponseDto(BaseModel):
     receiver: Optional[UserDto]
 
 # Для вложенных моделей
-AuthFullResponse.update_forward_refs()
-OrderResponse.update_forward_refs()
-MessageResponseDto.update_forward_refs() 
+AuthFullResponse.model_rebuild()
+OrderResponse.model_rebuild()
+MessageResponseDto.model_rebuild()

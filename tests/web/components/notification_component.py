@@ -1,34 +1,23 @@
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
 
 class NotificationComponent:
-    def __init__(self, root):
+    def __init__(self, root: WebElement):
         self.root = root
 
-    def get_id(self) -> str:
-        text = self.root.find_element(By.CSS_SELECTOR, "[data-testid^='notification-message-']").text
-        if "№" in text:
-            return text.split("№", 1)[1].strip()
-        return None
+    @property
+    def message(self) -> str:
+        return self.root.find_element(By.CSS_SELECTOR, "[data-testid='notification-message']").text
 
-    def get_message(self) -> str:
-        return self.root.find_element(By.CSS_SELECTOR, "[data-testid^='notification-message-']").text
+    @property
+    def type(self) -> str:
+        return self.root.find_element(By.CSS_SELECTOR, "[data-testid='notification-type-chip']").text
 
-    def message_contains(self, text: str) -> bool:
-        return text in self.get_message()
-
-    def get_date(self) -> str:
-        return self.root.find_element(By.CSS_SELECTOR, "[data-testid^='notification-date-']").text
-
-    def get_type(self) -> str:
-        return self.root.find_element(By.CSS_SELECTOR, "[data-testid^='notification-type-chip-']").text
-
-    def type_text_is(self, expected_text: str) -> bool:
-        return self.get_type() == expected_text
-
+    @property
     def is_read(self) -> bool:
-        return len(self.root.find_elements(By.CSS_SELECTOR, "[data-testid^='notification-read-chip-']")) > 0
+        return bool(self.root.find_elements(By.CSS_SELECTOR, "[data-testid='notification-read-chip']"))
 
-    def mark_as_read(self):
-        btns = self.root.find_elements(By.CSS_SELECTOR, "[data-testid^='notification-mark-read-btn-']")
-        if btns:
-            btns[0].click() 
+    def mark_as_read(self) -> None:
+        btn = self.root.find_elements(By.CSS_SELECTOR, "[data-testid='notification-mark-read-btn']")
+        if btn:
+            btn[0].click()
